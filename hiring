@@ -1,0 +1,116 @@
+import sys
+
+import os
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC # For SVM
+from sklearn.ensemble import RandomForestClassifier # For Random Forest
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report 
+from sklearn.metrics import roc_curve, auc, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_auc_score
+
+# Data Collection (6/21/2026)
+applicants = pd.read_csv("applicants.csv")
+'''
+What position is the applicant applying for?
+What are criteria for applying?
+'''
+print("Dataset uploaded")
+
+
+# Data Exploration (6/21/2026)
+#    General Overview of Data
+print("UNPROCESSED DATA")
+print("\n\tTop 5 Samples:")
+print(applicants.head())
+'''
+* Need to go over what columns and values within correspond to (particularly the non-obvious ones i.e. Accessibility, Employment, MainBranch)
+- Identified column "Unnamed" that can possibly be removed from consideration (simply a row/applicant number)
+'''
+
+print("\n\tSummary Statistics (of Numeric features):")
+print(applicants.describe()) 
+'''
+* Explain summary statistics (formulas for mean and std, %s = 25 lower percentile, 50 percentile or median, 75 upper percentile)
+- Discuss nonrelevances of Unnamed, Employment
+'''
+
+print("\n\tGeneral Info:")
+print(applicants.info()) 
+'''
+*Explain that this shows column names and data type for column values and also identifies that null(s) exist through mismatched non-null counts
+against total entries count
+- Identified column "HaveWorkedWith" that can possibly be split to have skill specificity included with "ComputerSkills" removed
+'''
+
+print("\n\tNumber of Null Values (by Column):")
+print(applicants.isna().sum())
+'''
+- Identifies column with null values
+'''
+
+print("Number of Duplicate Entries:",applicants.duplicated().sum())
+'''
+ - Identifies duplicate entries
+'''
+print("\n\tUnique Values by Feature:")
+for vals in applicants:
+    print(f"{vals}:",applicants[vals].nunique())
+
+
+# Data Visualization (6/21/2026)
+# Target/Employed Count
+sns.countplot(x='Employed', data=applicants)
+plt.title("Distribution of Employed (Target Variable)")
+plt.show()
+
+# Gender Count
+sns.countplot(x='Gender', data=applicants)
+plt.xticks(rotation=45)
+plt.title("Gender Type Counts")
+plt.show()
+
+# Feature Distribution
+sns.histplot(applicants["YearsCodePro"], bins=30, kde=True)
+plt.title("Professional Coding Years Distribution")
+plt.show()
+
+# Correlation heatmap
+plt.figure(figsize=(10,8))
+sns.heatmap(applicants.corr(numeric_only=True), annot=False, cmap="coolwarm")
+plt.title("Correlation Heatmap")
+plt.show()
+
+
+# Data Preprocessing (6/28/2026)
+'''
+- remove arbitrary column Unnamed
+- handle null values 
+- encode categorical
+- deal with HaveWorkedWith, split into separate columns, giving feature depth
+'''
+
+
+print("TEMP DATA")
+temp = applicants["HaveWorkedWith"].astype(str) # Convert objects to mutable string
+print(temp.info())
+temp = temp.str.split(';',expand=True)
+print(temp.head())
+applicants.drop(columns="HaveWorkedWith",inplace=True)
+print("COUNTS")
+print(temp.value_counts())
+#data[["HaveWorkedWith"]].astype(str)
+#data[["HaveWorkedWith"]].str.split(';',expand=True) # Had to look up to try split in case skill may be more relevent "ComputerSkills"
+print(applicants.info())
+
+
+
+# One-hot encoding drop first because of redundancy (i.e. 3 options, if 1-2 false, it is option 3 thus option 3 not needed)
