@@ -90,27 +90,98 @@ plt.title("Correlation Heatmap")
 plt.show()
 
 
-# Data Preprocessing (6/28/2026)
+# Data Preprocessing (6/29/2026)
 '''
-- remove arbitrary column Unnamed
-- handle null values 
-- encode categorical
-- deal with HaveWorkedWith, split into separate columns, giving feature depth
+- Removed arbitrary column Unnamed
+- Handled null values 
+- No low variance features (all features have more than 1 unique value)
+- Relative high cardinality feature
+- Encoded categorical
+- Possible expansion with HaveWorkedWith, split into separate columns, giving feature depth
 '''
+# Removed redundant indexing column
+applicants.drop(['Unnamed: 0'],axis=1)
+print(applicants.columns)
+
+# Removed entries with null values
+applicants.dropna(inplace=True)
+print("\n\tNumber of Null Values (by Column):")
+print(applicants.isna().sum())
+
+# Isolating Input and Output Data
+X = applicants.drop(columns=["Employed"])
+y = appliants["Employed"]
+
+# One-Hot Encoding (required for SVM and Random Forest)
+X = pd.get_dummies(X,drop_first=True) # Drop first because of redundancy (i.e. 3 options, 1 and 2 false, so option 3 true and 3rd column not needed)
+
+# Split 75% train, 15% validation, 10% test
+# First gives 85% to train and 15% to validation
+X_train, X_val, y_train, y_val = train_test_split(
+    X, y, test_size=0.15, random_state=42, stratify=y
+)
+
+# Then splits train again leaving 75% train with 10% test
+X_train, X_test, y_train, y_test = train_test_split(
+    X_train, y_train, test_size=0.10/0.85, random_state=42, stratify=y
+) 
+
+# Standardization (required for SVM and Logistic Regression)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_val_scaled = scaler.transform(X_val)
+X_test_scaled = scaler.transform(X_test)
 
 
+
+
+# Attempt to expand "HaveWorkedWith"
 print("TEMP DATA")
-temp = applicants["HaveWorkedWith"].astype(str) # Convert objects to mutable string
-print(temp.info())
+temp = applicants["HaveWorkedWith"] # Expanding "HaveWorkedWith"
 temp = temp.str.split(';',expand=True)
-print(temp.head())
-applicants.drop(columns="HaveWorkedWith",inplace=True)
-print("COUNTS")
-print(temp.value_counts())
+temp = temp.to_numpy()
+
+print(temp.shape[0])
+
+# Getting column names
+labels = []
+for row in range(len(temp)):
+    for col in range(len(temp[row])):
+        if temp[row][col] in labels:
+            continue
+        else:
+            labels.append(temp[row][col])
+
+print(labels)
+print(len(labels))
+labels.remove(None)
+#labels.remove(np.nan)
+print(labels)
+print(len(labels))
+labels.sort()
+print(labels)
+print(len(labels))
+
+# Recoding. 
+expansion = np.zeros((temp.shape[0],temp.shape[1]))
+for row in range(len(temp)):
+    if row % 10000 == 0:
+        print(row)
+    for col in range(len(temp[row])):
+        if temp[row][col] is None:
+            continue
+        elif temp[row][col] is labels[col]:
+            print(labels[col])
+            expansion[row][col] = 1
+print(expansion)
+
+print("\n\tNull COUNTS")
+#print(temp.value_counts())
 #data[["HaveWorkedWith"]].astype(str)
 #data[["HaveWorkedWith"]].str.split(';',expand=True) # Had to look up to try split in case skill may be more relevent "ComputerSkills"
-print(applicants.info())
+#print(applicants.info())
+#print(temp.isna().sum())
+#print(temp.head())
+#temp.replace(to_replace='None', np.nan
 
-
-
-# One-hot encoding drop first because of redundancy (i.e. 3 options, if 1-2 false, it is option 3 thus option 3 not needed)
+#applicants.drop(columns="HaveWorkedWith",inplace=True)
